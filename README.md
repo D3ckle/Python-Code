@@ -1,0 +1,1 @@
+#I have been doing python for quite a while, and some of the code I did when i was starting out was most likely wiped out, as i did not have the foresight at the time to save code locally on my own devices over school-owned computers.

